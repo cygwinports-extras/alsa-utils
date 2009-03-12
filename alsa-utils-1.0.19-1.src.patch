@@ -1,0 +1,111 @@
+--- origsrc/alsa-utils-1.0.19/aplay/aplay.c	2009-01-19 05:17:19.000000000 -0600
++++ src/alsa-utils-1.0.19/aplay/aplay.c	2009-03-08 22:42:47.734375000 -0500
+@@ -51,6 +51,13 @@
+ #include "formats.h"
+ #include "version.h"
+ 
++#ifdef __CYGWIN__
++#include <alsa/sound/type_compat.h>
++#define off64_t off_t
++#define open64 open
++#define lseek64 lseek
++#endif
++
+ #ifndef LLONG_MAX
+ #define LLONG_MAX    9223372036854775807LL
+ #endif
+@@ -972,7 +979,7 @@ static void set_params(void)
+ 	assert(err >= 0);
+ #endif
+ 	rate = hwparams.rate;
+-	err = snd_pcm_hw_params_set_rate_near(handle, params, &hwparams.rate, 0);
++	err = __snd_pcm_hw_params_set_rate_near(handle, params, &hwparams.rate, 0);
+ 	assert(err >= 0);
+ 	if ((float)rate * 1.05 < hwparams.rate || (float)rate * 0.95 > hwparams.rate) {
+ 		if (!quiet_mode) {
+@@ -990,7 +997,7 @@ static void set_params(void)
+ 	}
+ 	rate = hwparams.rate;
+ 	if (buffer_time == 0 && buffer_frames == 0) {
+-		err = snd_pcm_hw_params_get_buffer_time_max(params,
++		err = __snd_pcm_hw_params_get_buffer_time_max(params,
+ 							    &buffer_time, 0);
+ 		assert(err >= 0);
+ 		if (buffer_time > 500000)
+@@ -1003,17 +1010,17 @@ static void set_params(void)
+ 			period_frames = buffer_frames / 4;
+ 	}
+ 	if (period_time > 0)
+-		err = snd_pcm_hw_params_set_period_time_near(handle, params,
++		err = __snd_pcm_hw_params_set_period_time_near(handle, params,
+ 							     &period_time, 0);
+ 	else
+-		err = snd_pcm_hw_params_set_period_size_near(handle, params,
++		err = __snd_pcm_hw_params_set_period_size_near(handle, params,
+ 							     &period_frames, 0);
+ 	assert(err >= 0);
+ 	if (buffer_time > 0) {
+-		err = snd_pcm_hw_params_set_buffer_time_near(handle, params,
++		err = __snd_pcm_hw_params_set_buffer_time_near(handle, params,
+ 							     &buffer_time, 0);
+ 	} else {
+-		err = snd_pcm_hw_params_set_buffer_size_near(handle, params,
++		err = __snd_pcm_hw_params_set_buffer_size_near(handle, params,
+ 							     &buffer_frames);
+ 	}
+ 	assert(err >= 0);
+@@ -1023,8 +1030,8 @@ static void set_params(void)
+ 		snd_pcm_hw_params_dump(params, log);
+ 		exit(EXIT_FAILURE);
+ 	}
+-	snd_pcm_hw_params_get_period_size(params, &chunk_size, 0);
+-	snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
++	__snd_pcm_hw_params_get_period_size(params, &chunk_size, 0);
++	__snd_pcm_hw_params_get_buffer_size(params, &buffer_size);
+ 	if (chunk_size == buffer_size) {
+ 		error(_("Can't use period equal to buffer size (%lu == %lu)"),
+ 		      chunk_size, buffer_size);
+@@ -1436,8 +1443,10 @@ static ssize_t pcm_write(u_char *data, s
+ 			snd_pcm_wait(handle, 1000);
+ 		} else if (r == -EPIPE) {
+ 			xrun();
++#ifdef ESTRPIPE
+ 		} else if (r == -ESTRPIPE) {
+ 			suspend();
++#endif
+ 		} else if (r < 0) {
+ 			error(_("write error: %s"), snd_strerror(r));
+ 			exit(EXIT_FAILURE);
+@@ -1481,8 +1490,10 @@ static ssize_t pcm_writev(u_char **data,
+ 			snd_pcm_wait(handle, 1000);
+ 		} else if (r == -EPIPE) {
+ 			xrun();
++#ifdef ESTRPIPE
+ 		} else if (r == -ESTRPIPE) {
+ 			suspend();
++#endif
+ 		} else if (r < 0) {
+ 			error(_("writev error: %s"), snd_strerror(r));
+ 			exit(EXIT_FAILURE);
+@@ -1523,8 +1534,10 @@ static ssize_t pcm_read(u_char *data, si
+ 			snd_pcm_wait(handle, 1000);
+ 		} else if (r == -EPIPE) {
+ 			xrun();
++#ifdef ESTRPIPE
+ 		} else if (r == -ESTRPIPE) {
+ 			suspend();
++#endif
+ 		} else if (r < 0) {
+ 			error(_("read error: %s"), snd_strerror(r));
+ 			exit(EXIT_FAILURE);
+@@ -1565,8 +1578,10 @@ static ssize_t pcm_readv(u_char **data, 
+ 			snd_pcm_wait(handle, 1000);
+ 		} else if (r == -EPIPE) {
+ 			xrun();
++#ifdef ESTRPIPE
+ 		} else if (r == -ESTRPIPE) {
+ 			suspend();
++#endif
+ 		} else if (r < 0) {
+ 			error(_("readv error: %s"), snd_strerror(r));
+ 			exit(EXIT_FAILURE);

@@ -1,0 +1,6 @@
+
+
+HOMEPAGE="http://www.alsa-project.org/"
+SRC_URI="ftp://ftp.alsa-project.org/pub/${PN#alsa-}/${P}.tar.bz2"
+
+DIFF_EXCLUDES="m4 version"
